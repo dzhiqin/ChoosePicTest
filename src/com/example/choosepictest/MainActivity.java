@@ -3,6 +3,7 @@ package com.example.choosepictest;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ContentUris;
@@ -17,6 +18,7 @@ import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.provider.MediaStore.Images.Media;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -83,6 +85,7 @@ public class MainActivity extends Activity {
 				Intent intent=new Intent("com.android.camera.action.CROP");
 				intent.setDataAndType(imageUri, "image/*");
 				intent.putExtra("scale", true);
+				//剪切后的图片还是以imageUri保存
 				intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri);
 				startActivityForResult(intent,CROP_PHOTO);//启动剪裁程序
 			}
@@ -92,21 +95,29 @@ public class MainActivity extends Activity {
 				try{
 					Bitmap bitmap=BitmapFactory.decodeStream(getContentResolver().openInputStream(imageUri));
 					picture.setImageBitmap(bitmap);
+					
 				}catch(FileNotFoundException e){
 					e.printStackTrace();
 				}
-				
+				//picture.setImageURI(imageUri);  //picture图片也可以直接用uri显示
 			}
 			break;
 		case CHOOSE_PHOTO:
 			if(resultCode==RESULT_OK){
 				//判断手机版本号
-				if(Build.VERSION.SDK_INT>=19){
-					//android4.4及以上系统使用这个方法处理图片
-					handleImageOnKitKat(data);
-				}else{
-					handleImageBeforeKitKat(data);
+				Log.v("DEBUG","手机版本号为："+Build.VERSION.SDK_INT);
+				Uri uri=data.getData();
+				Log.v("DEBUG", String.valueOf(uri));
+				//String imagePath=getImagePath(uri,null);
+				//displayImage(imagePath);
+				try {
+					Bitmap bitmap=MediaStore.Images.Media.getBitmap(getContentResolver(), uri);
+					picture.setImageBitmap(bitmap);
+				}catch (IOException e) {
+					// TODO 自动生成的 catch 块
+					e.printStackTrace();
 				}
+				//picture.setImageURI(uri);  //可以直接用uri设置图片
 			}
 			break;
 		default:
@@ -114,12 +125,7 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	private void handleImageBeforeKitKat(Intent data) {
-		// TODO 自动生成的方法存根
-		Uri uri=data.getData();
-		String imagePath=getImagePath(uri,null);
-		displayImage(imagePath);
-	}
+
 
 	private void displayImage(String imagePath) {
 		// TODO 自动生成的方法存根
@@ -133,12 +139,16 @@ public class MainActivity extends Activity {
 	}
 
 	private String getImagePath(Uri  uri, String selection) {
-		// 通过uri和selection来获取真是的图片路径
+		// 通过uri和selection来获取真实的图片路径
 		String path=null;
 		Cursor cursor=getContentResolver().query(uri, null, selection, null, null);
+		
 		if(cursor!=null){
 			if(cursor.moveToFirst()){
 				path=cursor.getString(cursor.getColumnIndex(Media.DATA));
+				
+				Log.v("DEBUG", String.valueOf(cursor.getColumnIndex(Media.DATA)));
+				Log.v("DEBUG", path);
 			}
 			cursor.close();
 		}
@@ -146,7 +156,7 @@ public class MainActivity extends Activity {
 	}
 
 	@SuppressLint("NewApi")
-	private void handleImageOnKitKat(Intent data) {
+	/*private void handleImageOnKitKat(Intent data) {
 		// TODO 自动生成的方法		
 		String imagePath=null;
 		Uri uri=data.getData();
@@ -166,7 +176,7 @@ public class MainActivity extends Activity {
 			}
 			displayImage(imagePath);//根据图片路径显示图片
 		}
-	}
+	}*/
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
